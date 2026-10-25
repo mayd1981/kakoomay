@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kakoomay</title>
+<meta name="theme-color" content="#EEF3FA">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@font-face{font-family:"Baloo 2";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/baloo-2-600.woff2) format("woff2")}
+@font-face{font-family:"Baloo 2";font-style:normal;font-weight:800;font-display:swap;src:url(fonts/baloo-2-800.woff2) format("woff2")}
+:root{--bg:#EEF3FA;--ink:#1B2340;--card:#fff;--muted:#5B6585;--line:#D0DAEC;--ok:#1E9E5A;--bad:#D64545;--p1:#D9482B;--p2:#17859C;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10162A;--ink:#EEF2FF;--card:#1B2340;--muted:#9AA6CC;--line:#2E3860;--ok:#38C77F;--bad:#F06A6A;--p1:#F0714F;--p2:#35B3CC;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10162A;--ink:#EEF2FF;--card:#1B2340;--muted:#9AA6CC;--line:#2E3860;--ok:#38C77F;--bad:#F06A6A;--p1:#F0714F;--p2:#35B3CC;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:600 17px/1.4 "Baloo 2",ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#app{min-height:100%;max-width:460px;margin:0 auto;padding:18px 16px 24px;display:flex;flex-direction:column}
+h1{font-size:clamp(38px,12vw,56px);line-height:1;padding-right:46px;margin:18px 0 8px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:17px;margin:22px 0 8px;color:var(--muted);font-weight:600}
+.lead{font-size:19px;margin:0;max-width:30ch}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:0;text-align:left;padding:12px 14px;border-radius:16px;background:var(--card);border:3px solid var(--line);position:relative}
+.opt b{font-size:19px;font-weight:800}.opt span{font-size:14px;color:var(--muted)}
+.opt i{position:absolute;right:12px;top:12px;width:14px;height:14px;border-radius:50%;background:var(--lv)}
+.opt.on{border-color:var(--lv)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:16px;padding:4px;gap:4px}
+.seg button{padding:10px;border-radius:12px;font-weight:800}
+.seg button.on{background:var(--card);box-shadow:0 1px 0 var(--line)}
+.hint{color:var(--muted);font-size:15px;margin:10px 2px 0;min-height:44px}
+.go{margin-top:auto;padding:16px;border-radius:18px;background:var(--ink);color:var(--bg);font-size:21px;font-weight:800}
+.menu{display:flex;flex-direction:column;flex:1;position:relative}
+.fsbtn{position:absolute;right:0;top:2px;width:40px;height:40px;border-radius:12px;background:var(--card);border:2px solid var(--line);font-size:20px;line-height:1}
+.top{display:flex;align-items:center;justify-content:space-between;font-size:16px;color:var(--muted);min-height:40px}
+.back{width:40px;height:40px;border-radius:12px;background:var(--card);border:2px solid var(--line);font-size:20px}
+.game{display:flex;flex-direction:column;flex:1;gap:10px}
+.board{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.card{border:4px solid var(--lv);border-radius:26px;background:var(--card);overflow:hidden;width:100%;max-width:340px;margin:0 auto}
+.card>header{background:var(--lv);color:#fff;text-align:center;font-weight:800;font-size:20px;padding:4px 0 2px;letter-spacing:.04em}
+.tiles{display:grid;gap:10px;padding:14px}
+.tile{aspect-ratio:1.15;border-radius:16px;border:3px solid var(--line);background:var(--bg);font-size:38px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:transform .12s,background .12s}
+.tile:active:not(:disabled){transform:scale(.94)}
+.tile:disabled{cursor:default}
+.tile.sum{border-color:var(--lv);background:var(--lv);color:#fff}
+.tile.pick{border-color:var(--lv)}
+.tile.hit{border-color:var(--ok);background:var(--ok);color:#fff}
+.tile.bad{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.say{text-align:center;height:100px;display:flex;flex-direction:column;justify-content:center}
+.say .eq{font-size:34px;font-weight:800;letter-spacing:.02em}
+.say p{margin:0;font-size:18px}
+.say.good p,.say.good .eq{color:var(--ok)}.say.no p{color:var(--bad)}
+.buzz{padding:12px 16px;border-radius:20px;color:#fff;font-weight:800;display:flex;justify-content:space-between;align-items:center;min-height:76px;font-size:26px;position:relative;overflow:hidden}
+.buzz small{font-size:16px;font-weight:600;display:block;line-height:1.1;opacity:.92}
+.buzz em{font-style:normal;text-align:right}
+.buzz.p1{background:var(--p1);transform:rotate(180deg)}.buzz.p2{background:var(--p2)}
+.buzz:disabled{opacity:.38;cursor:default}
+.buzz.act{opacity:1;box-shadow:0 0 0 4px var(--ink)}
+.buzz .bar{position:absolute;left:0;bottom:0;height:6px;width:100%;background:#fff;transform-origin:left;animation:drain linear forwards}
+@keyframes drain{to{transform:scaleX(0)}}
+.res{text-align:center;display:flex;flex-direction:column;flex:1;justify-content:center;gap:10px}
+.res h1{margin:0;font-size:44px}.res .big{font-size:64px;font-weight:800;line-height:1}
+.res p{margin:0;color:var(--muted);font-size:19px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.row button{padding:14px;border-radius:16px;font-weight:800;font-size:19px;background:var(--card);border:3px solid var(--line)}
+.row button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.opt.wide{grid-column:1/-1}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 10px}
+.tabs button{padding:6px 12px;border-radius:12px;border:3px solid var(--line);background:var(--card);font-size:16px;font-weight:800}
+.tabs button.on{border-color:var(--lv)}
+.lb{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lb li{display:grid;grid-template-columns:34px 1fr auto 74px;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--card);border:3px solid var(--line)}
+.lb li.me{border-color:var(--ok)}
+.lb .ini{font-size:24px;font-weight:800;letter-spacing:.12em}
+.lb small{color:var(--muted);font-size:14px;text-align:right}
+.empty{color:var(--muted);text-align:center;padding:26px 8px}
+.ini-in{width:7ch;margin:6px auto 0;padding:8px 10px;border-radius:16px;border:4px solid var(--lv);background:var(--card);color:var(--ink);font:800 38px/1 "Baloo 2",ui-rounded,system-ui,sans-serif;text-align:center;letter-spacing:.2em;text-transform:uppercase}
+.row button:disabled{opacity:.4;cursor:default}
+.linkbtn{color:var(--muted);text-decoration:underline;padding:10px;font-size:15px}
+.seg.op{margin-top:18px}.seg.op button{font-size:19px;padding:12px 6px}
+.flower{display:block;width:100%;height:auto;padding:6px 8px 10px;user-select:none;-webkit-user-select:none}
+.petal{cursor:pointer;outline:none;transform-box:fill-box;transform-origin:center;transition:transform .12s}
+.petal path{fill:var(--bg);stroke:var(--line);stroke-width:3;stroke-linejoin:round;transition:fill .12s}
+.petal text{fill:var(--ink);font-family:inherit;font-weight:800;pointer-events:none}
+.petal:active{transform:scale(.94)}
+.petal.off{pointer-events:none}
+.petal.sum path{fill:var(--lv);stroke:var(--lv)}.petal.sum text{fill:#fff}
+.petal.pick path{stroke:var(--lv)}
+.petal.hit path{fill:var(--ok);stroke:var(--ok)}.petal.hit text{fill:#fff}
+.petal.bad{animation:shake .35s}
+.petal:focus-visible path{stroke:var(--ink);stroke-width:4}
+.hub{fill:var(--lv)}.hubsym{fill:#fff;font-family:inherit;font-weight:800;pointer-events:none}
+.seg.m3{grid-template-columns:repeat(3,1fr)}.seg.m3 button{padding:10px 4px}
+.hint.warn{color:var(--bad)}
+.ovwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;overflow:hidden;cursor:pointer}
+.ov{position:relative;width:100%;max-width:340px;aspect-ratio:1;container-type:inline-size;transform-origin:50% 50%;transition:transform .95s cubic-bezier(.65,0,.25,1),opacity .3s ease .65s}
+.ov.zm{opacity:0}
+.mini,.fin{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1;border-radius:50%;background:var(--card);border:2px solid var(--line)}
+.fin{left:50%;top:50%}
+.mini.cur,.fin.cur{border-color:var(--lv);box-shadow:0 0 0 3px var(--lv)}
+.mini .flower{padding:4%}.fin .flower{padding:3%}
+.mini.done .flower{opacity:.22}
+.mini .bd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-style:normal;font-weight:800;font-size:9cqw;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:50%;width:11cqw;height:11cqw;display:flex;align-items:center;justify-content:center}
+.mini .rv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:13cqw;padding:0 1.5cqw;height:13cqw;display:flex;align-items:center;justify-content:center;border-radius:99px;background:var(--ok);color:#fff;font-weight:800;font-size:8.5cqw}
+.ovcap{text-align:center;color:var(--muted);min-height:52px;font-size:17px;max-width:30ch}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="config.js"></script>
+<script>
+var OPS={
+add:{sym:"+",name:"Addition",noun:"die Summe",lead:"Auf jeder Karte ist eine Zahl die Summe von zwei anderen. Finde sie!",levels:[
+{name:"Stufe 1",sub:"Zahlen bis 12",lo:1,hi:12,count:5,cols:3,col:"#2E8B57",pool:true},
+{name:"Stufe 2",sub:"Zahlen bis 20",lo:1,hi:20,count:6,cols:2,col:"#2F6FB5",pool:true},
+{name:"Stufe 3",sub:"Zahlen bis 30, mehr Zahlen",lo:1,hi:30,count:9,cols:3,col:"#C46F14"},
+{name:"Stufe 4",sub:"Zahlen bis 50",lo:2,hi:50,count:9,cols:3,col:"#8A4FB3"},
+{name:"Zufallsmix",sub:"Stufen 1 bis 3 gemischt, jede Karte anders",mix:[0,1,2],col:"#C0392B"}]},
+mul:{sym:"×",name:"Multiplikation",noun:"das Produkt",lead:"Auf jeder Karte ist eine Zahl das Produkt von zwei anderen. Finde sie!",levels:[
+{name:"Stufe 1",sub:"Faktoren bis 5, Zahlen bis 30",lo:2,hi:30,fmax:5,count:6,cols:2,col:"#0E8C8C"},
+{name:"Stufe 2",sub:"Faktoren bis 7, Zahlen bis 50",lo:2,hi:50,fmax:7,count:6,cols:2,col:"#B5446E"},
+{name:"Stufe 3",sub:"Einmaleins, Zahlen bis 100",lo:2,hi:100,fmax:10,count:9,cols:3,col:"#4C5FD5"},
+{name:"Zufallsmix",sub:"Stufen 1 bis 3 gemischt, jede Karte anders",mix:[0,1,2],col:"#C0392B"}]}
+};
+var TOTAL=10, LIMIT=8000, PENALTY=3000, KEY="kakooma:scores:v1";
+var cfg={op:"add",lvs:{add:0,mul:0},mode:"solo",bm:"solo"}, S=null, mem={}, recent=[], clearArmed=false;
+var app=document.getElementById("app");
+function OP(){return OPS[cfg.op]}
+function LS(){return OP().levels}
+function LV(){return cfg.lvs[cfg.op]}
+function bkey(i){return cfg.op+":"+(cfg.bm==="chain"?"k":"")+i}
+
+function ri(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=ri(0,i),t=a[i];a[i]=a[j];a[j]=t}return a}
+// alle Rechnungen x ○ y = z mit zwei verschiedenen Zahlen der Karte
+function sols(n,op){var s={},r=[],i,j,v;n.forEach(function(x){s[x]=1});
+ for(i=0;i<n.length;i++)for(j=i+1;j<n.length;j++){v=op==="mul"?n[i]*n[j]:n[i]+n[j];if(s[v])r.push([n[i],n[j],v])}return r}
+// Zufällige Karte mit GENAU einer Lösung; keine Wiederholungen, nie dasselbe Ergebnis zweimal hintereinander
+var POOLS={};
+// Kleine Zahlenräume (Addition Stufe 1 und 2): alle gültigen Karten einmal berechnen und gewichtet ziehen,
+// so dass Karten ohne Größen-Hinweis (Summanden = kleinste Zahlen, Summe = größte Zahl) häufiger vorkommen
+function poolCard(L,op,prev){
+ var k=op+L.lo+"-"+L.hi+"-"+L.count,P=POOLS[k];
+ if(!P){P=POOLS[k]=[[],[],[]];var cur=[];
+  (function rec(st){
+   if(cur.length===L.count){var s=sols(cur,op);
+    if(s.length===1){var c=cur.slice(),t=(c[0]===s[0][0]&&c[1]===s[0][1]?1:0)+(c[L.count-1]===s[0][2]?1:0);P[t].push({nums:c,sol:s[0]})}
+    return}
+   for(var x=st;x<=L.hi;x++){cur.push(x);rec(x+1);cur.pop()}
+  })(L.lo);
+ }
+ for(var tries=0;;tries++){
+  var r=Math.random(),ci=r<0.5?0:r<0.95?1:2;
+  if(!P[ci].length)ci=P[0].length?0:P[1].length?1:2;
+  var e=P[ci][ri(0,P[ci].length-1)];
+  if(tries<40&&e.sol[2]===prev)continue;
+  var key=op+":"+e.nums.join(",");
+  if(tries<80&&recent.indexOf(key)>=0)continue;
+  recent.push(key);if(recent.length>300)recent.shift();
+  return{nums:shuffle(e.nums.slice()),sol:e.sol};
+ }
+}
+function range(a,b){var r=[];for(;a<=b;a++)r.push(a);return r}
+// o.fixed: Ergebnis steht fest (Rätsel einer Puzzle-Kette); o.allowed: nur diese Zahlen dürfen vorkommen (Puzzle-Karte)
+function makeCard(L,op,prev,o){
+ o=o||{};
+ if(L.pool&&!o.fixed&&!o.allowed)return poolCard(L,op,prev);
+ var allowed=o.allowed,fixed=o.fixed,special=!!(allowed||fixed),rng=allowed||range(L.lo,L.hi);
+ for(var tries=0;;tries++){
+  if(special&&tries>3000)return null;
+  var a,b,t;
+  if(allowed){a=allowed[ri(0,allowed.length-1)];b=allowed[ri(0,allowed.length-1)];t=op==="mul"?a*b:a+b;if(a===b||allowed.indexOf(t)<0)continue}
+  else if(op==="mul"){
+   if(fixed){t=fixed;a=ri(2,L.fmax);if(t%a)continue;b=t/a;if(b<2||b>L.fmax)continue}
+   else{a=ri(2,L.fmax);b=ri(2,L.fmax);t=a*b}
+   if(a===b||t>L.hi)continue;
+   if(!fixed&&Math.max(a,b)<=3&&tries<200&&Math.random()<0.8)continue;
+  }else{
+   if(fixed){t=fixed}else{t=ri(2*L.lo,L.hi)}
+   a=ri(L.lo,t-L.lo);b=t-a;if(a===b)continue;
+  }
+  if(!special&&tries<40&&t===prev)continue;
+  var nums=[a,b,t],ok=true;
+  while(nums.length<L.count){
+   var c=[],qi,n;
+   for(qi=0;qi<rng.length;qi++){n=rng[qi];if(nums.indexOf(n)<0&&sols(nums.concat(n),op).length===1)c.push(n)}
+   if(!c.length){ok=false;break}
+   var pick=c[ri(0,c.length-1)];
+   if(op==="mul"){
+    // Größen mischen: mindestens ein Ablenker kleiner als der größere Faktor, die übrigen überwiegend im Bereich des Ergebnisses
+    var mx=Math.max(a,b),sm=c.filter(function(x){return x<mx}),cap=Math.max(t+4,Math.round(L.hi/2)),md=c.filter(function(x){return x<=cap});
+    if(nums.length===3&&sm.length&&Math.random()<0.9)pick=sm[ri(0,sm.length-1)];
+    else if(md.length&&Math.random()<0.7)pick=md[ri(0,md.length-1)];
+   }else{
+    // Addition: Ablenker gleichmäßig auf drei Bereiche verteilen (kleiner als der größere Summand, dazwischen, größer als die Summe)
+    var zs=[c.filter(function(x){return x<Math.max(a,b)}),c.filter(function(x){return x>Math.max(a,b)&&x<t}),c.filter(function(x){return x>t})].filter(function(z){return z.length});
+    if(zs.length){var z=zs[ri(0,zs.length-1)];pick=z[ri(0,z.length-1)]}
+   }
+   nums.push(pick);
+  }
+  if(!ok)continue;
+  var sl=sols(nums,op);if(sl.length!==1)continue;
+  var key=op+":"+nums.slice().sort(function(x,y){return x-y}).join(",");
+  if(!special&&tries<80&&recent.indexOf(key)>=0)continue;
+  if(!special){recent.push(key);if(recent.length>300)recent.shift()}
+  return{nums:shuffle(nums),sol:sl[0]};
+ }
+}
+// Ergebnisse, die ein Rätsel dieser Stufe haben kann (zwei verschiedene Zahlen)
+function achievable(L,op){
+ var r=[],m={},a,b,v;
+ if(op==="mul"){for(a=2;a<=L.fmax;a++)for(b=a+1;b<=L.fmax;b++)if(a*b<=L.hi)m[a*b]=1;for(v in m)r.push(+v)}
+ else for(v=2*L.lo+1;v<=L.hi;v++)r.push(v);
+ return r.sort(function(x,y){return x-y});
+}
+var CHAIN={};
+function chainOK(op,li){
+ var k=op+li;
+ if(CHAIN[k]===undefined){
+  var l=OPS[op].levels[li],ids=l.mix?l.mix:[li];
+  CHAIN[k]=ids.some(function(i){var x=OPS[op].levels[i];return !!makeCard(x,op,0,{allowed:achievable(x,op)})});
+ }
+ return CHAIN[k];
+}
+// Puzzle: Zuerst die mittlere Karte (nur erreichbare Ergebnisse), dann zu jeder Zahl darauf ein Rätsel mit genau diesem Ergebnis
+function buildChain(){
+ var op=cfg.op,l0=LS()[LV()],pool=(l0.mix?l0.mix.map(function(i){return LS()[i]}):[l0]).filter(function(l){return !!makeCard(l,op,0,{allowed:achievable(l,op)})});
+ if(!pool.length)return null;
+ for(var k=0;k<30;k++){
+  var L=pool[ri(0,pool.length-1)],fin=makeCard(L,op,0,{allowed:achievable(L,op)}),cards=[],ok=!!fin,i,c;
+  for(i=0;ok&&i<fin.nums.length;i++){c=makeCard(L,op,0,{fixed:fin.nums[i]});if(!c)ok=false;else{c.L=L;cards.push(c)}}
+  if(ok){fin.L=L;return{L:L,final:fin,cards:cards,solved:[]}}
+ }
+ return null;
+}
+function fmt(ms){var t=Math.round(ms/100)/10,m=Math.floor(t/60),s=(t-m*60).toFixed(1);return m?m+":"+(s<10?"0":"")+s:s+" s"}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+function opSwitch(attr){return '<div class="seg op" role="group" aria-label="Rechenart">'+["add","mul"].map(function(k){
+ return '<button data-'+attr+'="'+k+'" class="'+(cfg.op===k?"on":"")+'">'+OPS[k].sym+' '+OPS[k].name+'</button>'}).join("")+'</div>'}
+
+// ---------- Bestenlisten (lokal im Browser, getrennt nach Rechenart und Stufe) ----------
+function loadAll(){var o=mem;try{var r=localStorage.getItem(KEY);if(r)o=JSON.parse(r)}catch(e){}
+ Object.keys(o).forEach(function(k){if(/^\d+$/.test(k)){o["add:"+k]=(o["add:"+k]||[]).concat(o[k]);delete o[k]}});return o}
+function saveAll(o){mem=o;try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}
+function board(lv){return(loadAll()[bkey(lv)]||[]).slice().sort(function(a,b){return a.t-b.t}).slice(0,10)}
+function rankOf(lv,t){return board(lv).filter(function(e){return e.t<=t}).length+1}
+function addScore(lv,n,t,m){
+ var all=loadAll(),id=Date.now().toString(36)+Math.random().toString(36).slice(2,6),k=bkey(lv),arr=(all[k]||[]).concat({id:id,n:n,t:t,m:m});
+ arr.sort(function(a,b){return a.t-b.t});all[k]=arr.slice(0,10);saveAll(all);return id;
+}
+
+// ---------- Zentrale Bestenliste (optional, siehe config.js) ----------
+var CFG=(typeof window!=="undefined"&&window.KAKOOMAY)||{},ONLINE=!!CFG.scoreUrl,PKEY="kakoomay:pending:v1",boardTok=0;
+function pend(){try{return JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){return []}}
+function setPend(a){try{localStorage.setItem(PKEY,JSON.stringify(a))}catch(e){}}
+function fetchT(url,opt,ms){
+ var c=typeof AbortController!=="undefined"?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},ms);
+ opt=opt||{};if(c)opt.signal=c.signal;
+ return fetch(url,opt).then(function(r){return r.json()}).then(function(j){clearTimeout(t);return j},function(e){clearTimeout(t);throw e});
+}
+// cb(liste, online): zentrale Liste, bei Fehler die lokale Liste dieses Geräts
+function getBoard(lv,cb){
+ if(!ONLINE)return cb(board(lv),false);
+ fetchT(CFG.scoreUrl+"?op="+cfg.op+"&bm="+cfg.bm+"&lv="+lv,null,6000).then(function(j){if(!j||!j.ok)throw 0;cb(j.list||[],true)},function(){cb(board(lv),false)});
+}
+function postScore(en){
+ return fetchT(CFG.scoreUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(en)},8000).then(function(j){if(!j||!j.ok)throw 0});
+}
+// Ergebnisse, die ohne Verbindung nicht gesendet werden konnten, später nachsenden
+function flushPending(){
+ if(!ONLINE)return;var p=pend();if(!p.length)return;setPend([]);
+ p.forEach(function(en){postScore(en).catch(function(){setPend(pend().concat(en))})});
+}
+
+function menu(){
+ clearTimeout(S&&S.to);clearTimeout(S&&S.ovT);clearArmed=false;boardTok++;if(S)S.inResult=false;
+ cfg.bm=cfg.mode==="chain"?"chain":"solo";
+ var L=LS()[LV()],bad=cfg.mode==="chain"&&!chainOK(cfg.op,LV()),
+  hints={solo:"10 Karten, so schnell du kannst. Die Zeit siehst du erst am Ende. Jeder Fehler kostet 3 Sekunden.",
+   duo:"Beide am selben Gerät. Wer die Lösung zuerst sieht, drückt „Kakoomay!“ und antwortet. Wer richtig liegt, bekommt den Punkt.",
+   chain:"Löse mehrere Rätsel nacheinander. Ihre Ergebnisse ergeben zusammen das Puzzle in der Mitte. Die Zeit siehst du erst am Ende, jeder Fehler kostet 3 Sekunden."};
+ app.innerHTML='<section class="menu" style="--lv:'+L.col+'">'+(canFs()?'<button class="fsbtn" data-act="fs" aria-label="Vollbild ein oder aus">⛶</button>':"")+'<h1>Kakoomay</h1>'+
+ '<p class="lead">'+OP().lead+'</p>'+opSwitch("op")+
+ '<h2>Stufe wählen</h2><div class="opts">'+LS().map(function(l,i){
+  return '<button class="opt'+(i===LV()?' on':'')+(l.mix?' wide':'')+'" data-lv="'+i+'" style="--lv:'+l.col+'"><i></i><b>'+l.name+'</b><span>'+l.sub+'</span></button>'}).join("")+'</div>'+
+ '<h2>Wie wollt ihr spielen?</h2><div class="seg m3">'+[["solo","Allein"],["duo","Zu zweit"],["chain","Puzzle"]].map(function(m){
+  return '<button data-mode="'+m[0]+'" class="'+(cfg.mode===m[0]?"on":"")+'">'+m[1]+'</button>'}).join("")+'</div>'+
+ '<p class="hint'+(bad?' warn':'')+'">'+(bad?"Für diese Stufe gibt es kein Puzzle, weil die Ergebnisse dafür zu klein sind. Wähle eine andere Stufe.":hints[cfg.mode])+'</p>'+
+ '<div class="row" style="margin-top:auto"><button data-act="boards">Bestenlisten</button><button class="pri" data-act="start"'+(bad?" disabled":"")+'>Spiel starten</button></div></section>';
+}
+
+function newCard(){
+ if(S.chain){S.card=S.idx<S.chain.cards.length?S.chain.cards[S.idx]:S.chain.final;S.card.L=S.chain.L}
+ else{
+  var L=LS()[LV()];
+  if(L.mix)L=LS()[L.mix[ri(0,L.mix.length-1)]];
+  S.card=makeCard(L,cfg.op,S.prev);S.card.L=L;S.prev=S.card.sol[2];
+ }
+ S.phase=cfg.mode==="duo"?"wait":"sum";S.picks=[];S.sumIdx=-1;
+ S.active=null;S.locked=[false,false];S.reveal=false;S.lock=false;S.msg="";S.tone="";S.badIdx=-1;S.cardT=Date.now();
+}
+function start(){
+ cfg.bm=cfg.mode==="chain"?"chain":"solo";
+ S={idx:0,scores:[0,0],mistakes:0,t0:Date.now(),elapsed:0,to:0,prev:0,saved:false,acc:0};
+ if(cfg.mode==="chain"){
+  var ch=buildChain();if(!ch){S=null;return menu()}
+  S.chain=ch;overview(0);return;
+ }
+ newCard();draw();
+}
+function next(){
+ S.idx++;
+ if(S.idx>=TOTAL){S.elapsed=Date.now()-S.t0;return result()}
+ newCard();draw();
+}
+// ----- Puzzle-Modus: Kreis-Übersicht, Zoom und Bewegung von Rätsel zu Rätsel -----
+function ovHTML(target){
+ var ch=S.chain,K=ch.cards.length,sym=OP().sym,Rc=36,d=Math.min(28,2*Rc*Math.sin(Math.PI/K)*0.9),fd=2*(Rc-d/2-2.5),html="",i;
+ for(i=0;i<K;i++){
+  var a=2*Math.PI*i/K,x=50+Rc*Math.sin(a),y=50-Rc*Math.cos(a),done=!!ch.solved[i],cn=ch.cards[i].nums;
+  html+='<div class="mini'+(done?' done':'')+(i===target?' cur':'')+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;width:'+d.toFixed(2)+'%">'+
+   petals(cn,cn.map(function(){return ""}),true,sym)+(done?'<b class="rv">'+ch.final.nums[i]+'</b>':'<i class="bd">'+(i+1)+'</i>')+'</div>';
+ }
+ var fn=ch.final.nums.map(function(v,j){return ch.solved[j]?String(v):"?"}),fs=ch.final.nums.map(function(v,j){return ch.solved[j]?"hit":""});
+ html+='<div class="fin'+(target===K?' cur':'')+'" style="width:'+fd.toFixed(2)+'%">'+petals(fn,fs,true,sym)+'</div>';
+ return{html:html,d:d,fd:fd,Rc:Rc};
+}
+function overview(target){
+ var ch=S.chain,K=ch.cards.length,o=ovHTML(target);
+ clearTimeout(S.ovT);S.zooming=false;S.ovTarget=target;S.ovMeta=o;
+ var cap=target===0?"Löse alle "+K+" Rätsel. Ihre Ergebnisse bilden das Puzzle in der Mitte.":target<K?"Weiter mit Rätsel "+(target+1)+" von "+K+".":"Alle Ergebnisse sind gesammelt. Jetzt kommt das Puzzle!";
+ app.innerHTML='<section class="game" style="--lv:'+ch.L.col+'"><div class="top"><button class="back" data-act="menu" aria-label="Zurück zum Menü">←</button><span>'+OP().sym+' Puzzle</span><span style="min-width:40px"></span></div>'+
+ '<div class="ovwrap" data-act="zoom" style="--lv:'+ch.L.col+'"><div class="ov" id="ov">'+o.html+'</div><div class="ovcap">'+cap+'</div></div></section>';
+ S.ovT=setTimeout(zoomNow,1400);
+}
+// Kamera-Transformation: Ziel t (0..K-1 = äußeres Rätsel, K = Puzzle in der Mitte) mittig und passend groß
+function camT(o,K,t){
+ var mx=50,my=50,sc=100/o.fd;
+ if(t<K){var a=2*Math.PI*t/K;mx=50+o.Rc*Math.sin(a);my=50-o.Rc*Math.cos(a);sc=100/o.d}
+ return "scale("+sc.toFixed(3)+") translate("+(50-mx).toFixed(2)+"%,"+(50-my).toFixed(2)+"%)";
+}
+function zoomNow(){
+ if(!S||!S.chain||S.zooming)return;
+ var el=document.getElementById("ov");if(!el)return;
+ S.zooming=true;clearTimeout(S.ovT);
+ el.style.transition="transform .8s cubic-bezier(.65,0,.25,1),opacity .25s ease .6s";
+ el.style.transform=camT(S.ovMeta,S.chain.cards.length,S.ovTarget);
+ el.classList.add("zm");
+ var tok=S;
+ S.ovT=setTimeout(function(){if(S!==tok||!document.getElementById("ov"))return;newCard();draw()},860);
+}
+// Von einem Rätsel zum nächsten: keine Übersicht, die Kamera bleibt gezoomt und fährt nur am Kreis entlang
+function pan(from,to){
+ var ch=S.chain,K=ch.cards.length,o=ovHTML(to),hold=to===K?0.4:0,dur=to===K?0.8:0.6;
+ clearTimeout(S.ovT);S.zooming=true;S.ovTarget=to;S.ovMeta=o;
+ app.innerHTML='<section class="game" style="--lv:'+ch.L.col+'"><div class="top"><button class="back" data-act="menu" aria-label="Zurück zum Menü">←</button><span>'+OP().sym+' Puzzle</span><span style="min-width:40px"></span></div>'+
+ '<div class="ovwrap" style="--lv:'+ch.L.col+'"><div class="ov" id="ov">'+o.html+'</div></div></section>';
+ var el=document.getElementById("ov");
+ el.style.transition="none";el.style.transform=camT(o,K,from);void el.offsetWidth;
+ el.style.transition="transform "+dur+"s cubic-bezier(.65,0,.25,1),opacity .2s ease "+(dur-0.15+hold)+"s";
+ el.style.transform=camT(o,K,to);el.classList.add("zm");
+ var tok=S;
+ S.ovT=setTimeout(function(){if(S!==tok||!document.getElementById("ov"))return;newCard();draw()},Math.round((dur+hold+0.1)*1000));
+}
+function chainNext(){
+ if(S.idx>=S.chain.cards.length){S.elapsed=S.acc;return result()}
+ var from=S.idx;S.chain.solved[from]=true;S.idx++;
+ pan(from,S.idx);
+}
+function eq(sol){return sol[0]+" "+OP().sym+" "+sol[1]+" = "+sol[2]}
+
+// Ungerade Zahlenanzahl: Blüte. Jedes Blatt ist innen schmal, außen breit und rund; die Breite passt sich der Anzahl an.
+function petals(nums,st,off,sym){
+ var N=nums.length,sn=Math.sin(Math.PI/N),ro=142,ri=N<7?44:50,
+  wo=ro*sn/(1+sn)-(N<6?10:N<7?3.5:4.5),wi=Math.max(6,ri*sn-4),rc=ro-wo,out="",i,
+  yi=Math.sqrt(ri*ri-wi*wi),
+  f=function(v){return v.toFixed(1)},
+  fz=function(n){return N<7?42:30},
+  // Tangente vom schmalen Innenpunkt an den runden Außenrand -> glatter Übergang ohne Knick
+  dx=-wi,dy=-rc+yi,dd=Math.sqrt(dx*dx+dy*dy),al=Math.asin(wo/dd),ln=Math.sqrt(dd*dd-wo*wo),
+  tp=function(sg){var c=Math.cos(sg*al),s2=Math.sin(sg*al),ux=dx/dd,uy=dy/dd;return[wi+ln*(ux*c-uy*s2),-yi+ln*(ux*s2+uy*c)]},
+  t1=tp(1),t2=tp(-1),tr=t1[0]>t2[0]?t1:t2,
+  // Innenkante: Kreisbogen um die Mitte, parallel zum Rand der Mittelscheibe
+  d="M"+f(-wi)+" "+f(-yi)+"L"+f(-tr[0])+" "+f(tr[1])+"A"+f(wo)+" "+f(wo)+" 0 1 1 "+f(tr[0])+" "+f(tr[1])+"L"+f(wi)+" "+f(-yi)+"A"+ri+" "+ri+" 0 0 0 "+f(-wi)+" "+f(-yi)+"Z";
+
+ for(i=0;i<N;i++){
+  var a=360*i/N,r=a*Math.PI/180,rt=rc-6,tx=150+rt*Math.sin(r),ty=150-rt*Math.cos(r);
+  out+='<g class="petal '+st[i]+(off?' off':'')+'" data-t="'+i+'" role="button" tabindex="'+(off?-1:0)+'" aria-label="'+nums[i]+'"'+(off?' aria-disabled="true"':'')+'>'+
+   '<path transform="translate(150 150) rotate('+a.toFixed(2)+')" d="'+d+'"/>'+
+   '<text x="'+f(tx)+'" y="'+f(ty)+'" dy=".36em" text-anchor="middle" font-size="'+fz(nums[i])+'">'+nums[i]+'</text></g>';
+ }
+ return '<svg class="flower" viewBox="0 0 300 300" role="group" aria-label="Zahlenkarte">'+out+'<circle class="hub" cx="150" cy="150" r="'+(ri-8)+'"/><text class="hubsym" x="150" y="150" dy=".36em" text-anchor="middle" font-size="34">'+sym+'</text></svg>';
+}
+
+function draw(){
+ var L=LS()[LV()],CL=S.card.L,duo=cfg.mode==="duo",c=S.card,cur=c.sol;
+ var off=S.lock||S.phase==="wait",flower=c.nums.length>=5;
+ var st=c.nums.map(function(n,i){
+  var cl="";
+  if(S.phase==="addends"&&i===S.sumIdx)cl="sum";
+  else if(S.picks.indexOf(i)>=0)cl="pick";
+  if(S.reveal&&cur.indexOf(n)>=0)cl+=" hit";
+  if(i===S.badIdx)cl+=" bad";
+  return cl});
+ var tiles=flower?petals(c.nums,st,off,OP().sym):'<div class="tiles" style="grid-template-columns:repeat('+CL.cols*2+',1fr)">'+c.nums.map(function(n,i){
+  return '<button class="tile '+st[i]+'" data-t="'+i+'" style="grid-column:span 2"'+(off?" disabled":"")+'>'+n+'</button>'}).join("")+'</div>';
+ var say;
+ if(S.phase==="addends"&&!S.msg){
+  var p=function(k){return S.picks[k]!==undefined?c.nums[S.picks[k]]:"?"};
+  say='<div class="say"><div class="eq">'+cur[2]+' = '+p(0)+' '+OP().sym+' '+p(1)+'</div><p>Tippe die beiden Zahlen an.</p></div>';
+ }else{
+  var t=S.msg||(S.phase==="wait"?"Wer die Lösung sieht, drückt „Kakoomay!“":"Welche Zahl ist "+OP().noun+" von zwei anderen?");
+  say='<div class="say '+S.tone+'"><p>'+t+'</p></div>';
+ }
+ function buzz(p){
+  var on=S.phase==="wait"&&!S.lock&&!S.locked[p];
+  var bar=S.active===p?'<span class="bar" style="animation-duration:'+LIMIT+'ms;animation-delay:-'+(Date.now()-S.buzzAt)+'ms"></span>':"";
+  return '<button class="buzz p'+(p+1)+(S.active===p?" act":"")+'" data-buzz="'+p+'"'+(on?"":" disabled")+'><span>Spieler '+(p+1)+'<small>'+S.scores[p]+(S.scores[p]===1?" Punkt":" Punkte")+'</small></span><em>Kakoomay!</em>'+bar+'</button>'}
+ var head='<div class="top"><button class="back" data-act="menu" aria-label="Zurück zum Menü">←</button><span>'+OP().sym+' '+L.name+' · '+(S.chain?(S.idx<S.chain.cards.length?'Rätsel '+(S.idx+1)+' von '+S.chain.cards.length:'Puzzle'):'Karte '+(S.idx+1)+' von '+TOTAL)+'</span><span style="min-width:40px"></span></div>';
+ app.innerHTML='<section class="game" style="--lv:'+CL.col+'">'+(duo?buzz(0):"")+head+
+ '<div class="board"><div class="card"><header>Kakoomay</header>'+tiles+'</div><div aria-live="polite">'+say+'</div></div>'+(duo?buzz(1):"")+'</section>';
+}
+
+function tap(i){
+ if(S.lock||S.phase==="wait")return;
+ var c=S.card,v=c.nums[i],sol=c.sol;
+ if(S.phase==="sum"){
+  if(v===sol[2]){S.phase="addends";S.sumIdx=i;S.picks=[];S.msg="";draw()}
+  else wrong(i);
+ }else{
+  if(i===S.sumIdx||S.picks.indexOf(i)>=0)return;
+  S.picks.push(i);
+  if(S.picks.length<2)return draw();
+  var a=c.nums[S.picks[0]],b=c.nums[S.picks[1]];
+  if((cfg.op==="mul"?a*b:a+b)===sol[2])win();else wrong(i);
+ }
+}
+function win(){
+ clearTimeout(S.to);
+ var sol=S.card.sol,p=S.active||0;
+ if(cfg.mode==="duo")S.scores[p]++;
+ S.reveal=true;S.lock=true;S.tone="good";vib(30);
+ S.msg=(cfg.mode==="duo"?"Punkt für Spieler "+(p+1)+"! ":"Richtig! ")+eq(sol);
+ S.picks=[];draw();
+ if(S.chain){S.acc+=Date.now()-S.cardT;setTimeout(chainNext,1000)}else setTimeout(next,1500);
+}
+function wrong(i){
+ clearTimeout(S.to);vib([60,40,60]);
+ S.badIdx=typeof i==="number"?i:-1;
+ if(cfg.mode!=="duo"){
+  S.mistakes++;S.phase="sum";S.sumIdx=-1;S.picks=[];S.tone="no";S.msg="Das war es leider nicht. Versuch es noch einmal.";
+  draw();S.badIdx=-1;
+  setTimeout(function(){if(S&&S.tone==="no"&&!S.lock){S.msg="";S.tone="";draw()}},1400);
+  return;
+ }
+ var p=S.active;S.locked[p]=true;S.active=null;S.phase="wait";S.picks=[];S.sumIdx=-1;S.tone="no";
+ if(S.locked[0]&&S.locked[1]){
+  S.reveal=true;S.lock=true;S.msg="Keiner hat sie gefunden: "+eq(S.card.sol);
+  draw();setTimeout(next,2400);
+ }else{
+  S.msg="Spieler "+(p+1)+" lag daneben. Spieler "+(2-p)+" darf jetzt.";
+  draw();
+ }
+ S.badIdx=-1;
+}
+function buzzIn(p){
+ if(S.phase!=="wait"||S.lock||S.locked[p])return;
+ S.active=p;S.phase="sum";S.picks=[];S.msg="";S.tone="";S.buzzAt=Date.now();
+ clearTimeout(S.to);S.to=setTimeout(function(){if(S.active===p&&!S.lock)wrong()},LIMIT);
+ vib(20);draw();
+}
+
+function result(){
+ if(cfg.mode==="duo"){
+  var a=S.scores[0],b=S.scores[1],w=a===b?"Unentschieden!":"Spieler "+(a>b?1:2)+" gewinnt!";
+  app.innerHTML='<div class="res"><h1>'+w+'</h1><div class="big">'+a+' : '+b+'</div><p>Spieler 1 gegen Spieler 2</p></div>'+
+  '<div class="row"><button data-act="menu">Zum Menü</button><button class="pri" data-act="start">Nochmal</button></div>';
+  return;
+ }
+ var pen=S.mistakes*PENALTY;
+ S.total=S.elapsed+pen;S.inResult=true;
+ if(!ONLINE){S.cmp=board(LV());S.online=false;return showResult()}
+ var L=LS()[LV()],tok=S;
+ app.innerHTML='<div class="res" style="--lv:'+L.col+'"><h1>'+(cfg.mode==="chain"?"Puzzle gelöst!":"Geschafft!")+'</h1><div class="big">'+fmt(S.total)+'</div><p>Bestenliste wird geladen …</p></div>'+
+ '<div class="row"><button data-act="menu">Zum Menü</button><button class="pri" data-act="start">Nochmal</button></div>';
+ getBoard(LV(),function(list,on){if(S!==tok||!S.inResult)return;S.cmp=list;S.online=on;showResult()});
+}
+function showResult(){
+ var L=LS()[LV()];
+ S.rank=S.cmp.filter(function(e){return e.t<=S.total}).length+1;
+ var q=S.rank<=10&&!S.saved
+  ? '<p>Platz '+S.rank+' in der Bestenliste ('+OP().name+(cfg.mode==="chain"?", Puzzle":"")+')! Dein Kürzel (3 Zeichen):</p><input id="ini" class="ini-in" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Kürzel mit drei Zeichen">'
+  : '<p>Diesmal nicht in den Top 10 (Platz '+S.rank+').</p>';
+ if(ONLINE&&!S.online)q+='<p>Keine Verbindung: Vergleich nur mit diesem Gerät.</p>';
+ app.innerHTML='<div class="res" style="--lv:'+L.col+'"><h1>'+(cfg.mode==="chain"?"Puzzle gelöst!":"Geschafft!")+'</h1><div class="big">'+fmt(S.total)+'</div>'+
+ '<p>Zeit '+fmt(S.elapsed)+(S.mistakes?' + '+S.mistakes+' Fehler × 3 s':' · ohne Fehler')+'</p>'+q+'</div>'+
+ (S.rank<=10&&!S.saved
+  ? '<div class="row"><button data-act="menu">Nicht speichern</button><button class="pri" id="save" data-act="save" disabled>Speichern</button></div>'
+  : '<div class="row"><button data-act="boards">Bestenlisten</button><button class="pri" data-act="start">Nochmal</button></div>');
+ var el=document.getElementById("ini");if(el)el.focus();
+}
+function showBoard(lv,hl){
+ cfg.lvs[cfg.op]=lv;
+ if(!ONLINE)return drawBoard(lv,board(lv),hl,false);
+ var tok=++boardTok;drawBoard(lv,null,hl,true);
+ getBoard(lv,function(list,on){if(tok===boardTok)drawBoard(lv,list,hl,on)});
+ flushPending();
+}
+function drawBoard(lv,list,hl,on){
+ var L=LS()[lv];
+ var body=list===null?'<p class="empty">Bestenliste wird geladen …</p>':
+  (list.length?'<ol class="lb">'+list.map(function(e,i){
+   return '<li class="'+(e.id===hl?'me':'')+'"><b>'+(i+1)+'</b><span class="ini">'+e.n+'</span><span>'+fmt(e.t)+'</span><small>'+e.m+' Fehler</small></li>'}).join("")+'</ol>'
+  :'<p class="empty">Noch keine Einträge. '+(cfg.bm==="chain"?"Löse ein Puzzle, dann steht dein Kürzel hier.":"Spiel eine Runde allein, dann steht dein Kürzel hier.")+'</p>');
+ var note=ONLINE&&list!==null?'<p class="hint" style="min-height:0;margin:10px 2px 0">'+(on?"Zentrale Bestenliste":"Keine Verbindung: Anzeige nur für dieses Gerät")+'</p>':"";
+ app.innerHTML='<section class="menu" style="--lv:'+L.col+'"><div class="top"><button class="back" data-act="menu" aria-label="Zurück zum Menü">←</button><span>Bestenlisten</span><span style="min-width:40px"></span></div>'+
+ opSwitch("bop")+
+ '<div class="seg" style="margin-top:10px"><button data-bm="solo" class="'+(cfg.bm==="solo"?"on":"")+'">Einzelrunde</button><button data-bm="chain" class="'+(cfg.bm==="chain"?"on":"")+'">Puzzle</button></div>'+
+ '<div class="tabs">'+LS().map(function(l,i){return '<button data-board="'+i+'" class="'+(i===lv?'on':'')+'" style="--lv:'+l.col+'">'+l.name+'</button>'}).join("")+'</div>'+
+ body+note+
+ '<div class="row" style="margin-top:auto'+(ONLINE?';grid-template-columns:1fr':'')+'">'+(ONLINE?'':'<button data-act="clear">'+(clearArmed?"Wirklich leeren?":"Liste leeren")+'</button>')+'<button class="pri" data-act="startbm">Diese Stufe spielen</button></div></section>';
+}
+
+// Vollbild: Browser erlauben es nur nach einer Nutzeraktion, deshalb beim ersten Antippen, bis es klappt
+var fsDone=false;
+var STANDALONE=!!(typeof matchMedia!=="undefined"&&matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches);
+function canFs(){var d=document.documentElement;return !STANDALONE&&!!(d.requestFullscreen||d.webkitRequestFullscreen)}
+function inFs(){return !!(document.fullscreenElement||document.webkitFullscreenElement)}
+function goFs(){
+ var d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(!f)return;
+ try{var r=f.call(d);if(r&&r.then)r.then(function(){fsDone=true}).catch(function(){})}catch(e){}
+}
+function toggleFs(){
+ if(inFs()){var x=document.exitFullscreen||document.webkitExitFullscreen;if(x){try{x.call(document)}catch(e){}}}
+ else goFs();
+}
+document.addEventListener("click",function(e){
+ if(STANDALONE||fsDone||inFs()||(e.target.closest&&e.target.closest('[data-act="fs"]')))return;
+ goFs();
+},true);
+
+app.addEventListener("click",function(e){
+ var el=e.target.closest("button,[data-t],[data-act]");if(!el)return;
+ var d=el.dataset;
+ if(d.lv!==undefined){cfg.lvs[cfg.op]=+d.lv;menu()}
+ else if(d.mode){cfg.mode=d.mode;menu()}
+ else if(d.op){cfg.op=d.op;menu()}
+ else if(d.bop){cfg.op=d.bop;clearArmed=false;showBoard(LV())}
+ else if(d.bm){cfg.bm=d.bm;clearArmed=false;showBoard(LV())}
+ else if(d.act==="zoom")zoomNow();
+ else if(d.act==="startbm"){cfg.mode=cfg.bm==="chain"?"chain":"solo";if(cfg.mode==="chain"&&!chainOK(cfg.op,LV()))menu();else start()}
+ else if(d.board!==undefined){clearArmed=false;showBoard(+d.board)}
+ else if(d.act==="start")start();
+ else if(d.act==="fs")toggleFs();
+ else if(d.act==="menu")menu();
+ else if(d.act==="boards"){clearArmed=false;showBoard(LV())}
+ else if(d.act==="clear"){
+  if(!clearArmed){clearArmed=true;showBoard(LV())}
+  else{var all=loadAll();delete all[bkey(LV())];saveAll(all);clearArmed=false;showBoard(LV())}
+ }
+ else if(d.act==="save"){
+  var v=(document.getElementById("ini")||{}).value||"";
+  if(v.length===3){
+   S.saved=true;var id=addScore(LV(),v,S.total,S.mistakes);
+   if(ONLINE){
+    var en={op:cfg.op,bm:cfg.bm,lv:LV(),id:id,n:v,t:Math.round(S.total),m:S.mistakes};
+    app.innerHTML='<div class="res"><h1>Speichere …</h1></div>';
+    postScore(en).then(function(){showBoard(LV(),id)},function(){setPend(pend().concat(en));showBoard(LV(),id)});
+   }else showBoard(LV(),id);
+  }
+ }
+ else if(d.t!==undefined&&S)tap(+d.t);
+ else if(d.buzz!==undefined&&S)buzzIn(+d.buzz);
+});
+app.addEventListener("input",function(e){
+ if(e.target.id!=="ini")return;
+ var v=e.target.value.toUpperCase().replace(/[^A-Z0-9ÄÖÜ]/g,"").slice(0,3);
+ e.target.value=v;
+ var b=document.getElementById("save");if(b)b.disabled=v.length!==3;
+});
+app.addEventListener("keydown",function(e){
+ var g=e.target;if((e.key==="Enter"||e.key==="Space"||e.key===" ")&&g.dataset&&g.dataset.t!==undefined&&g.tagName.toLowerCase()==="g"&&S){e.preventDefault();tap(+g.dataset.t)}
+ if(e.key==="Enter"&&e.target.id==="ini"){var b=document.getElementById("save");if(b&&!b.disabled)b.click()}
+});
+if("serviceWorker" in navigator&&location.protocol!=="file:"){navigator.serviceWorker.register("sw.js").catch(function(){})}
+window.addEventListener("online",flushPending);flushPending();
+menu();
+</script>
+</body>
+</html>
