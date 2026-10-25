@@ -35,6 +35,7 @@ h2{font-size:17px;margin:22px 0 8px;color:var(--muted);font-weight:600}
 .hint{color:var(--muted);font-size:15px;margin:10px 2px 0;min-height:44px}
 .go{margin-top:auto;padding:16px;border-radius:18px;background:var(--ink);color:var(--bg);font-size:21px;font-weight:800}
 .menu{display:flex;flex-direction:column;flex:1;position:relative}
+.ver{text-align:center;margin:8px 0 0;color:var(--muted);font-size:14px}.ver .linkbtn{padding:6px;font-size:14px}.ver #vstat{display:block;min-height:22px}
 .fsbtn{position:absolute;right:0;top:2px;width:40px;height:40px;border-radius:12px;background:var(--card);border:2px solid var(--line);font-size:20px;line-height:1}
 .top{display:flex;align-items:center;justify-content:space-between;font-size:16px;color:var(--muted);min-height:40px}
 .back{width:40px;height:40px;border-radius:12px;background:var(--card);border:2px solid var(--line);font-size:20px}
@@ -113,6 +114,7 @@ h2{font-size:17px;margin:22px 0 8px;color:var(--muted);font-weight:600}
 </head>
 <body>
 <main id="app"></main>
+<script src="version.js"></script>
 <script src="config.js"></script>
 <script>
 var OPS={
@@ -256,7 +258,7 @@ function addScore(lv,n,t,m){
 }
 
 // ---------- Zentrale Bestenliste (optional, siehe config.js) ----------
-var CFG=(typeof window!=="undefined"&&window.KAKOOMAY)||{},ONLINE=!!CFG.scoreUrl,PKEY="kakoomay:pending:v1",boardTok=0,lastErr="";
+var CFG=(typeof window!=="undefined"&&window.KAKOOMAY)||{},ONLINE=!!CFG.scoreUrl,PKEY="kakoomay:pending:v1",boardTok=0,lastErr="",V=(typeof window!=="undefined"&&window.KAKOOMAY_VERSION)||null;
 function pend(){try{return JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){return []}}
 function setPend(a){try{localStorage.setItem(PKEY,JSON.stringify(a))}catch(e){}}
 function why(e){
@@ -291,6 +293,30 @@ function flushPending(){
  });
 }
 
+// ---------- Version anzeigen und nach Updates suchen ----------
+function verHTML(){
+ return V?'<p class="ver"><button class="linkbtn" data-act="vercheck">Version '+V.v+' ('+V.date+') · Nach Update suchen</button><span id="vstat" aria-live="polite"></span></p>':"";
+}
+async function checkUpdate(){
+ var st=document.getElementById("vstat");
+ function say(t,upd){if(st)st.innerHTML=t+(upd?' <button class="linkbtn" data-act="vupdate">Jetzt aktualisieren</button>':"")}
+ say("Prüfe …");
+ try{
+  var r=await fetch("version.js?check="+Date.now(),{cache:"no-store"}),t=await r.text(),m=/v:\s*"([^"]+)"/.exec(t);
+  if(!r.ok||!m)throw 0;
+  if(m[1]===V.v)say("Du hast die neueste Version ("+V.v+").");
+  else say("Neue Version "+m[1]+" ist verfügbar.",true);
+ }catch(e){say("Prüfung nicht möglich. Keine Verbindung?")}
+}
+// Zwischenspeicher leeren, Offline-Funktion abmelden und frisch laden; sie meldet sich danach mit der neuen Fassung neu an
+async function updateNow(){
+ try{
+  if(navigator.serviceWorker){var rs=await navigator.serviceWorker.getRegistrations();for(var i=0;i<rs.length;i++)await rs[i].unregister()}
+  if(window.caches){var ks=await caches.keys();for(var j=0;j<ks.length;j++)await caches.delete(ks[j])}
+ }catch(e){}
+ location.reload();
+}
+
 function menu(){
  clearTimeout(S&&S.to);clearTimeout(S&&S.ovT);clearArmed=false;boardTok++;if(S)S.inResult=false;
  cfg.bm=cfg.mode==="chain"?"chain":"solo";
@@ -305,7 +331,7 @@ function menu(){
  '<h2>Wie wollt ihr spielen?</h2><div class="seg m3">'+[["solo","Allein"],["duo","Zu zweit"],["chain","Puzzle"]].map(function(m){
   return '<button data-mode="'+m[0]+'" class="'+(cfg.mode===m[0]?"on":"")+'">'+m[1]+'</button>'}).join("")+'</div>'+
  '<p class="hint'+(bad?' warn':'')+'">'+(bad?"Für diese Stufe gibt es kein Puzzle, weil die Ergebnisse dafür zu klein sind. Wähle eine andere Stufe.":hints[cfg.mode])+'</p>'+
- '<div class="row" style="margin-top:auto"><button data-act="boards">Bestenlisten</button><button class="pri" data-act="start"'+(bad?" disabled":"")+'>Spiel starten</button></div></section>';
+ '<div class="row" style="margin-top:auto"><button data-act="boards">Bestenlisten</button><button class="pri" data-act="start"'+(bad?" disabled":"")+'>Spiel starten</button></div>'+verHTML()+'</section>';
 }
 
 function newCard(){
@@ -571,6 +597,8 @@ app.addEventListener("click",function(e){
  else if(d.board!==undefined){clearArmed=false;showBoard(+d.board)}
  else if(d.act==="start")start();
  else if(d.act==="fs")toggleFs();
+ else if(d.act==="vercheck")checkUpdate();
+ else if(d.act==="vupdate")updateNow();
  else if(d.act==="menu")menu();
  else if(d.act==="boards"){clearArmed=false;showBoard(LV())}
  else if(d.act==="clear"){

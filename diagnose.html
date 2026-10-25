@@ -15,6 +15,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#fff;border:2px solid 
 </head>
 <body>
 <h1>Verbindung zur zentralen Bestenliste prüfen</h1>
+<p class="note" id="ver"></p>
 <p class="note">Diese Seite testet dieselbe Verbindung wie das Spiel und zeigt, woran es liegt, wenn keine Ergebnisse ankommen.</p>
 <p id="cfg"></p>
 <label for="u"><b>Adresse der Web-App</b> (endet auf <code>/exec</code>)</label>
@@ -23,11 +24,13 @@ pre{white-space:pre-wrap;word-break:break-word;background:#fff;border:2px solid 
 <button id="b2">2. Test-Ergebnis senden</button>
 <pre id="out">Noch nichts getestet.</pre>
 <p class="note">Der Test sendet ein Ergebnis mit dem Kürzel TST in „Stufe 9“. Es taucht in keiner Spielliste auf. Du kannst die Zeile in der Tabelle danach löschen.</p>
+<script src="version.js"></script>
 <script src="config.js"></script>
 <script>
 var u=document.getElementById("u"),out=document.getElementById("out"),cfg=document.getElementById("cfg");
 var conf=(window.KAKOOMAY&&window.KAKOOMAY.scoreUrl)||"";
 u.value=conf;
+if(window.KAKOOMAY_VERSION)document.getElementById("ver").textContent="Kakoomay Version "+KAKOOMAY_VERSION.v+" ("+KAKOOMAY_VERSION.date+")";
 cfg.innerHTML=conf?"In <code>config.js</code> ist eine Adresse eingetragen. Das Spiel nutzt sie.":
  "<b class='bad'>In config.js ist noch keine Adresse eingetragen.</b> Dann nutzt das Spiel nur lokale Bestenlisten. Trage die Adresse dort ein (siehe LIESMICH.md, Schritt 3).";
 function say(lines){out.innerHTML=lines.join("\n")}
