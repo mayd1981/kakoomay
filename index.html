@@ -256,9 +256,13 @@ function addScore(lv,n,t,m){
 }
 
 // ---------- Zentrale Bestenliste (optional, siehe config.js) ----------
-var CFG=(typeof window!=="undefined"&&window.KAKOOMAY)||{},ONLINE=!!CFG.scoreUrl,PKEY="kakoomay:pending:v1",boardTok=0;
+var CFG=(typeof window!=="undefined"&&window.KAKOOMAY)||{},ONLINE=!!CFG.scoreUrl,PKEY="kakoomay:pending:v1",boardTok=0,lastErr="";
 function pend(){try{return JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){return []}}
 function setPend(a){try{localStorage.setItem(PKEY,JSON.stringify(a))}catch(e){}}
+function why(e){
+ var n=e&&e.name;
+ return n==="AbortError"?"Zeitüberschreitung":n==="SyntaxError"?"Antwort ungültig: Zugriff auf „Jeder“ gestellt? Adresse endet auf /exec?":"Verbindung fehlgeschlagen oder blockiert";
+}
 function fetchT(url,opt,ms){
  var c=typeof AbortController!=="undefined"?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},ms);
  opt=opt||{};if(c)opt.signal=c.signal;
@@ -267,15 +271,24 @@ function fetchT(url,opt,ms){
 // cb(liste, online): zentrale Liste, bei Fehler die lokale Liste dieses Geräts
 function getBoard(lv,cb){
  if(!ONLINE)return cb(board(lv),false);
- fetchT(CFG.scoreUrl+"?op="+cfg.op+"&bm="+cfg.bm+"&lv="+lv,null,6000).then(function(j){if(!j||!j.ok)throw 0;cb(j.list||[],true)},function(){cb(board(lv),false)});
+ fetchT(CFG.scoreUrl+"?op="+cfg.op+"&bm="+cfg.bm+"&lv="+lv,null,6000).then(function(j){
+  if(!j||!j.ok)return{err:"Server meldet: "+((j&&j.error)||"unbekannt")};
+  return{list:j.list||[]};
+ },function(e){return{err:why(e)}}).then(function(r){
+  if(r.err){lastErr=r.err;cb(board(lv),false)}else cb(r.list,true);
+ });
 }
 function postScore(en){
- return fetchT(CFG.scoreUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(en)},8000).then(function(j){if(!j||!j.ok)throw 0});
+ return fetchT(CFG.scoreUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(en)},8000).then(function(j){if(!j||!j.ok)throw new Error("Server meldet: "+((j&&j.error)||"unbekannt"))},function(e){throw new Error(why(e))});
 }
-// Ergebnisse, die ohne Verbindung nicht gesendet werden konnten, später nachsenden
+// Ergebnisse, die ohne Verbindung nicht gesendet werden konnten, später nachsenden (erst nach Erfolg aus der Warteschlange entfernen)
+var flushing=false;
 function flushPending(){
- if(!ONLINE)return;var p=pend();if(!p.length)return;setPend([]);
- p.forEach(function(en){postScore(en).catch(function(){setPend(pend().concat(en))})});
+ if(!ONLINE||flushing)return;var p=pend();if(!p.length)return;
+ flushing=true;var left=p.length;
+ p.forEach(function(en){
+  postScore(en).then(function(){setPend(pend().filter(function(x){return x.id!==en.id}))},function(e){lastErr=e.message}).then(function(){if(--left===0)flushing=false});
+ });
 }
 
 function menu(){
@@ -518,7 +531,7 @@ function drawBoard(lv,list,hl,on){
   (list.length?'<ol class="lb">'+list.map(function(e,i){
    return '<li class="'+(e.id===hl?'me':'')+'"><b>'+(i+1)+'</b><span class="ini">'+e.n+'</span><span>'+fmt(e.t)+'</span><small>'+e.m+' Fehler</small></li>'}).join("")+'</ol>'
   :'<p class="empty">Noch keine Einträge. '+(cfg.bm==="chain"?"Löse ein Puzzle, dann steht dein Kürzel hier.":"Spiel eine Runde allein, dann steht dein Kürzel hier.")+'</p>');
- var note=ONLINE&&list!==null?'<p class="hint" style="min-height:0;margin:10px 2px 0">'+(on?"Zentrale Bestenliste":"Keine Verbindung: Anzeige nur für dieses Gerät")+'</p>':"";
+ var pn=pend().length,note=ONLINE&&list!==null?'<p class="hint'+(on&&!pn?'':' warn')+'" style="min-height:0;margin:10px 2px 0">'+(on?"Zentrale Bestenliste":"Keine Verbindung: Anzeige nur für dieses Gerät")+(pn?' · '+pn+(pn===1?' Ergebnis wartet':' Ergebnisse warten')+' auf das Senden':'')+(lastErr&&(!on||pn)?' ('+lastErr+')':'')+'</p>':"";
  app.innerHTML='<section class="menu" style="--lv:'+L.col+'"><div class="top"><button class="back" data-act="menu" aria-label="Zurück zum Menü">←</button><span>Bestenlisten</span><span style="min-width:40px"></span></div>'+
  opSwitch("bop")+
  '<div class="seg" style="margin-top:10px"><button data-bm="solo" class="'+(cfg.bm==="solo"?"on":"")+'">Einzelrunde</button><button data-bm="chain" class="'+(cfg.bm==="chain"?"on":"")+'">Puzzle</button></div>'+
@@ -571,7 +584,7 @@ app.addEventListener("click",function(e){
    if(ONLINE){
     var en={op:cfg.op,bm:cfg.bm,lv:LV(),id:id,n:v,t:Math.round(S.total),m:S.mistakes};
     app.innerHTML='<div class="res"><h1>Speichere …</h1></div>';
-    postScore(en).then(function(){showBoard(LV(),id)},function(){setPend(pend().concat(en));showBoard(LV(),id)});
+    postScore(en).then(function(){showBoard(LV(),id)},function(e){lastErr=e.message;setPend(pend().concat(en));showBoard(LV(),id)});
    }else showBoard(LV(),id);
   }
  }

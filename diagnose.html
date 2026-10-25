@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kakoomay – Verbindung prüfen</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;max-width:640px;margin:0 auto;padding:18px;color:#1B2340;background:#EEF3FA}
+h1{font-size:24px;margin:.2em 0}
+input{width:100%;padding:10px;font:inherit;border:2px solid #C9D3E8;border-radius:10px;box-sizing:border-box}
+button{font:inherit;font-weight:700;padding:10px 14px;margin:8px 8px 0 0;border:0;border-radius:10px;background:#1B2340;color:#fff;cursor:pointer}
+pre{white-space:pre-wrap;word-break:break-word;background:#fff;border:2px solid #C9D3E8;border-radius:10px;padding:12px;min-height:80px}
+.ok{color:#1E7A4A}.bad{color:#C0392B}.note{color:#5B6585;font-size:14px}
+</style>
+</head>
+<body>
+<h1>Verbindung zur zentralen Bestenliste prüfen</h1>
+<p class="note">Diese Seite testet dieselbe Verbindung wie das Spiel und zeigt, woran es liegt, wenn keine Ergebnisse ankommen.</p>
+<p id="cfg"></p>
+<label for="u"><b>Adresse der Web-App</b> (endet auf <code>/exec</code>)</label>
+<input id="u" autocomplete="off" spellcheck="false">
+<button id="b1">1. Liste abrufen</button>
+<button id="b2">2. Test-Ergebnis senden</button>
+<pre id="out">Noch nichts getestet.</pre>
+<p class="note">Der Test sendet ein Ergebnis mit dem Kürzel TST in „Stufe 9“. Es taucht in keiner Spielliste auf. Du kannst die Zeile in der Tabelle danach löschen.</p>
+<script src="config.js"></script>
+<script>
+var u=document.getElementById("u"),out=document.getElementById("out"),cfg=document.getElementById("cfg");
+var conf=(window.KAKOOMAY&&window.KAKOOMAY.scoreUrl)||"";
+u.value=conf;
+cfg.innerHTML=conf?"In <code>config.js</code> ist eine Adresse eingetragen. Das Spiel nutzt sie.":
+ "<b class='bad'>In config.js ist noch keine Adresse eingetragen.</b> Dann nutzt das Spiel nur lokale Bestenlisten. Trage die Adresse dort ein (siehe LIESMICH.md, Schritt 3).";
+function say(lines){out.innerHTML=lines.join("\n")}
+function url(){return u.value.trim()}
+function looksRight(a){return /^https:\/\/script\.google\.com\/macros\/s\/[^\/\s]+\/exec$/.test(a)}
+function sep(a){return a.indexOf("?")<0?"?":"&"}
+async function call(a,opt){
+ try{
+  var r=await fetch(a,opt),t=await r.text(),j;
+  try{j=JSON.parse(t)}catch(e){
+   return{err:"Die Antwort ist keine Daten-Antwort (Status "+r.status+"). Meist steht „Wer hat Zugriff“ nicht auf „Jeder“, oder die Adresse endet nicht auf /exec, oder die Bereitstellung ist veraltet („Neue Version“ bereitstellen).",raw:t.replace(/\s+/g," ").slice(0,160)};
+  }
+  return{j:j,status:r.status};
+ }catch(e){
+  return{err:"Keine Verbindung oder vom Browser blockiert ("+e.name+"). Prüfe die Adresse, die Internetverbindung und ob die Web-App für „Jeder“ bereitgestellt ist."};
+ }
+}
+function head(){
+ var a=url(),l=[];
+ if(!a)l.push("<span class='bad'>Keine Adresse eingetragen.</span>");
+ else if(!looksRight(a))l.push("<span class='bad'>Achtung:</span> Die Adresse sieht nicht wie eine Apps-Script-Adresse aus (https://script.google.com/macros/s/…/exec).");
+ return l;
+}
+document.getElementById("b1").onclick=async function(){
+ var a=url(),l=head();if(!a){say(l);return}
+ say(l.concat("Rufe Liste ab …"));
+ var r=await call(a+sep(a)+"op=add&bm=solo&lv=1");
+ if(r.err)l.push("<span class='bad'>✗ "+r.err+"</span>"+(r.raw?"\nAntwort beginnt mit: "+r.raw.replace(/</g,"&lt;"):""));
+ else if(r.j.ok)l.push("<span class='ok'>✓ Die Liste ist erreichbar ("+(r.j.list||[]).length+" Einträge in Addition, Einzelrunde, Stufe 2).</span>");
+ else l.push("<span class='bad'>✗ Server meldet: "+(r.j.error||"unbekannt")+"</span>");
+ say(l);
+};
+document.getElementById("b2").onclick=async function(){
+ var a=url(),l=head();if(!a){say(l);return}
+ say(l.concat("Sende Test-Ergebnis …"));
+ var id="tst"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ var r=await call(a,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op:"add",bm:"solo",lv:9,id:id,n:"TST",t:9999,m:0})});
+ if(r.err)l.push("<span class='bad'>✗ "+r.err+"</span>"+(r.raw?"\nAntwort beginnt mit: "+r.raw.replace(/</g,"&lt;"):""));
+ else if(r.j.ok)l.push("<span class='ok'>✓ Test-Ergebnis angenommen.</span> Schau jetzt in die Tabelle (Blatt „Scores“): Dort muss eine neue Zeile mit dem Kürzel TST stehen.\nSteht sie dort nicht, ist die Bereitstellung veraltet oder gehört zu einer anderen Tabelle.");
+ else l.push("<span class='bad'>✗ Server lehnt ab: "+(r.j.error||"unbekannt")+"</span>");
+ say(l);
+};
+</script>
+</body>
+</html>

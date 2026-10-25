@@ -1,6 +1,6 @@
 // Offline-Funktion: Die Dateien des Spiels werden beim ersten Besuch gespeichert.
 // Nach einer Änderung an den Dateien die Versionsnummer erhöhen (z. B. v2), damit Handys die neue Fassung holen.
-const VERSION = "kakoomay-v1";
+const VERSION = "kakoomay-v2";
 const FILES = [
   "./", "./index.html", "./config.js", "./manifest.webmanifest",
   "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
